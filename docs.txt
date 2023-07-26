@@ -1,0 +1,38 @@
+Lien: 
+    host:port/<route>
+    ex: 192.168.88.213:8000/users
+
+Liste des routes:
+- titulaire compte par compte_id: 
+    /comptetitulaire/{compte_id}   METHOD GET
+    ex: http://127.0.0.1:8001/comptetitulaire/12
+
+    /comptetitulaire   METHOD POST parametres: {compte_id} 
+- titulaire compte par compte_num: 
+    /comptetitulaire/num/{compte_num} METHOD GET
+    ex: http://127.0.0.1:8001/comptetitulaire/num/101041200025136602816
+
+    /comptetitulaire/num  METHOD POST parametres: {compte_num}
+    ex: http://127.0.0.1:8001/comptetitulaire/num/?compte_num=101041200025136602816
+
+- compte par compte_num:
+    /compte/{compte_num} GET
+    ex: http://127.0.0.1:8001/compte/101041200025136602816
+    
+- toutes les operation:
+    /ops   METHOD GET
+- inserer operation: 
+    /makedeposite   METHOD POST 
+    parametres: #atao formulaires ohatra
+        {
+        "compte_id": 0,
+        "op_montant": 0,
+        "op_reference": "string",
+        "partenaire_id": 0,
+        "op_date": "2023-03-27T11:52:27.267Z",
+        "op_etat": "string",
+        "op_quinze": 0,
+        "op_interet": 0,
+        "op_annee": 0
+        }
+
