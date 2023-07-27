@@ -1,0 +1,5 @@
+uvicorn main:app --reload
+#uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+#/home/administrateur/web_src/diaspoAPIsecured/home/administrateur/web_src/diaspoAPIsecured/diaspoapivenv/bin/gunicorn -c /home/administrateur/web_src/diaspoAPIsecured/gunicorn_conf.py main:app
+
