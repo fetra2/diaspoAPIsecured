@@ -115,8 +115,8 @@ class TokenRequest(BaseModel):
     part_key: str
 
 class TokenData(BaseModel):
-    username: str | None = None
-    password: str | None = None
+    username: str
+    password: str
 
 class Token(BaseModel):
     access_token: str

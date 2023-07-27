@@ -20,7 +20,7 @@ from passlib.context import CryptContext
 from typing import Annotated
 
 import jwt as jwt2
-from jwt.exceptions import InvalidSignatureError
+#from jwt.exceptions import InvalidSignatureError
 from passlib.context import CryptContext
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.hashers import make_password
