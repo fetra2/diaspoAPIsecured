@@ -15,8 +15,9 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy_utils import create_database, database_exists
 
 #SQLALCHEMY_DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/fafana"
-#SQLALCHEMY_DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/diaspo_django2"
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:root@192.168.88.213:5432/diaspo_django8"
+#SQLALCHEMY_DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/diaspo_django8"
+#SQLALCHEMY_DATABASE_URL = "postgresql://postgres:root@192.168.88.213:5432/diaspo_django8"
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:123Server2012.@192.168.88.213:6532/diaspo_django8"
 #SQLALCHEMY_DATABASE_URL = "postgresql://postgres:root@paositrasiege.mg:5432/diaspo_django3"
 
 engine = create_engine(

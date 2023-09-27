@@ -6,6 +6,7 @@ from schemas import UtilisateurCreate, OperationCreate, CompteUpdate, CompteResp
 import logging
 from fastapi import HTTPException
 import datetime
+from sqlalchemy import func
 
 #to know which route has been called
 logging.basicConfig(level=logging.INFO)
@@ -95,7 +96,7 @@ def get_operation_by_reference(db: Session, op_ref: str):
         raise HTTPException(status_code=404, detail="Operation not found")    
     return operations
 
-def create_operation(db: Session, operation:OperationCreate):
+def create_operation(db: Session, operation:OperationCreate, partenaire_id: int):
     existing_ops = db.query(Operation).filter(Operation.op_reference == operation.op_reference).first()
     if existing_ops:
         raise HTTPException(status_code=400, detail="reference already registered") 
@@ -105,13 +106,13 @@ def create_operation(db: Session, operation:OperationCreate):
     except:
          raise HTTPException(status_code=400, detail="Compte not found")
     if compte_to_update is not None:
-        #operation.op_etat= "verse"#add operartion etat to verse
+        #partenaire_id=operation.partenaire_id,
         
         db_ops = Operation(
             compte_id=compte_to_update.id,
             op_montant=operation.op_montant,
             op_reference=operation.op_reference,
-            partenaire_id=operation.partenaire_id,
+            partenaire_id=partenaire_id,
             op_type="versement",
             op_etat="verse",
             op_date=datetime.datetime.now(),
@@ -200,4 +201,11 @@ def get_partenaire_by_code_and_key(db: Session, part_code: str, part_key: str):
     partenaire = db.query(Partenaire).filter_by(part_code=part_code, part_key=part_key).first()
     if not partenaire:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    return partenaire
+
+def get_partenaire_by_nom(db: Session, part_nom: str):
+    #make filter to be case insensitive
+    partenaire = db.query(Partenaire).filter(func.lower(Partenaire.part_nom) == part_nom.lower()).first()
+    if not partenaire:
+        raise HTTPException(status_code=401, detail="Invalid partenaire name")
     return partenaire

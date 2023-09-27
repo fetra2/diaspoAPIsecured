@@ -8,7 +8,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from schemas import UtilisateurBase, UtilisateurCredentials, UtilisateurResponse, UtilisateurCreate, CompteResponse, PersonneResponse, OperationResponse, OperationCreate, CompteUpdate, TokenRequest, Token, PartenaireResponse, Partenaire, TokenData
 from models import Utilisateur, Base, Personne, Typecompte, Compte, Partenaire, Operation
-from crud import create_user, get_user, get_user_by_login, get_user_by_organisation, get_users, get_comptes, get_titulaires_of_compte, get_titulaires_of_compte_by_comptenum, get_operations, get_operation_by_reference, create_operation, get_compteid_by_comptenum, put_ops_update_compte, get_ops_update_compte, get_partenaire_by_code_and_key
+from crud import create_user, get_user, get_user_by_login, get_user_by_organisation, get_users, get_comptes, get_titulaires_of_compte, get_titulaires_of_compte_by_comptenum, get_operations, get_operation_by_reference, create_operation, get_compteid_by_comptenum, put_ops_update_compte, get_ops_update_compte, get_partenaire_by_code_and_key, get_partenaire_by_nom
 from database import get_db
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,8 +19,9 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from typing import Annotated
 
-import jwt as jwt2
+#import jwt as jwt2
 #from jwt.exceptions import InvalidSignatureError
+from jose.exceptions import ExpiredSignatureError, JWTError
 from passlib.context import CryptContext
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.hashers import make_password
@@ -48,7 +49,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
     # Define Pydantic schema for response
 
 #SFastAPI App and Routes
-app = FastAPI()
+app = FastAPI(title="TD API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[" * "],
@@ -98,15 +99,15 @@ def create_access_token(data: dict, expires_delta: timedelta):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def decode_token(token):
+def decode_token(tok):
     decoded_token = ""
     try:
-        decoded_token = jwt2.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(decoded_token)
-    except jwt2.exceptions.InvalidSignatureError:
-        print("Invalid signature")
-    except jwt2.exceptions.DecodeError:
-        print("Invalid token")
+        decoded_token = jwt.decode(str(tok), SECRET_KEY, algorithms=[ALGORITHM])
+        #print(decoded_token)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
     return decoded_token      
 
 def check_user_role_by_id(db: Session = Depends(get_db), user_id:str = None):
@@ -144,12 +145,25 @@ async def tester(db: Session = Depends(get_db), token: str= Depends(http_auth)):
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)):
     user = authenticate_user(form_data.username, form_data.password, db)
+        
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
+    try: 
+        partenaire = get_partenaire_by_nom(db, form_data.username)
+    except Exception as e:
+        # Handle any exceptions that may occur during the query
+        print(f"An error occurred: {e}")
+        partenaire = None    
+    if partenaire:
+        partenaire_id = partenaire.id
+    else:
+        partenaire_id = 0
+        # Handle the case where the partenaire is not found
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        {"sub": user.id}, 
+        {"sub": str(user.id), "partenaire": partenaire_id}, 
         access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer", "expiry_in_minutes": ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -178,13 +192,13 @@ def write_user(user:UtilisateurCreate, db: Session = Depends(get_db)):
 def read_compte(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):  
     return get_comptes(db, skip=skip, limit=limit)
 
-@app.get("/comptes", response_model=list[CompteResponse], include_in_schema=False)
+@app.get("/comptes", response_model=list[CompteResponse], include_in_schema=True)
 def read_compte(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str= Depends(oauth2_scheme)):  
     if not token:
         raise HTTPException(status_code=401, detail="Unauthorized")
     else:
         decoded_token = decode_token(token)
-        #print (decoded_token["sub"])
+        print (f'partenaire: {decoded_token["partenaire"]}')
         return get_comptes(db, skip=skip, limit=limit)
 
 @app.get("/comptetitulaire/{compte_id}", response_model=list[PersonneResponse], include_in_schema=False)
@@ -214,7 +228,8 @@ def read_comptetit(compte_num:str=None, db: Session = Depends(get_db), token: st
             "pers_mob_tel": titulaire.pers_mob_tel,
             "pers_email": titulaire.pers_email,
             "pers_sexe": titulaire.pers_sexe,
-            "pers_sit_fam": titulaire.pers_sit_fam
+            "pers_sit_fam": titulaire.pers_sit_fam,
+            "pers_type": titulaire.pers_type
         }
         all_titulaires.append(response)
     return all_titulaires
@@ -258,6 +273,9 @@ def read_operations(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
         }
         all_operations.append(response)
     #return all_operations
+
+    #decoded_token = decode_token(token)
+    #print (decoded_token["partenaire"]) 
     return operations
 
 @app.get("/ops/{op_ref}", response_model=list, include_in_schema=True)
@@ -277,6 +295,8 @@ def read_operation(op_ref:str=None, db: Session = Depends(get_db), token: str= D
     #return operations
 
 @app.post("/makedeposite", response_model=OperationCreate)
-def write_ops_update_compte(operation:OperationCreate, db: Session = Depends(get_db), token: str= Depends(oauth2_scheme)):  
+def write_ops_update_compte(operation:OperationCreate, db: Session = Depends(get_db), token: str= Depends(oauth2_scheme)): 
+    decoded_token = decode_token(token)
+    #print (decoded_token["partenaire"]) 
     #return put_ops_update_compte(db, operation=operation)#this add operation and update compte
-    return create_operation(db, operation=operation)
+    return create_operation(db, operation=operation, partenaire_id=int(decoded_token["partenaire"]))

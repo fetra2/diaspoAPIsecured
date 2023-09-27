@@ -56,6 +56,7 @@ class PersonneResponse(PersonneBase):
     pers_email: str
     pers_sexe: str
     pers_sit_fam: str
+    pers_type: str
     class Config:
         orm_mode = True
 
@@ -100,7 +101,7 @@ class OperationResponse(BaseModel):
 
 class OperationCreate(OperationBase):
     compte_num: str
-    partenaire_id: int
+    #partenaire_id: int
     op_montant: float
     op_reference:str
     class Config:
